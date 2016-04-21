@@ -1,5 +1,8 @@
 package datacollector;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import twitter4j.FilterQuery;
 import twitter4j.StallWarning;
 import twitter4j.Status;
@@ -10,7 +13,11 @@ import twitter4j.TwitterStreamFactory;
 import twitter4j.conf.ConfigurationBuilder;
 
 public class TwitterSourceD{
+	private static List<Status> twitterStatus = new ArrayList<Status>();
+	private static List<Status> cleanedStatus = new ArrayList<Status>();
+	private static int counter = 0;
 	public static void main(String[] args){
+		TwitterCollectorD tCollector = new TwitterCollectorD();
 		ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
             .setOAuthConsumerKey("4Bj0K9WBHJVoPu9D2fi8ok10K")
@@ -20,8 +27,20 @@ public class TwitterSourceD{
 		TwitterStream ts = new TwitterStreamFactory(cb.build()).getInstance();
 		StatusListener listener = new StatusListener(){
 			public void onStatus(Status status) {
-				
 	            System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
+	            if (counter == 100){
+	            	System.out.println("Cleaning data...");
+	            	cleanedStatus.addAll(tCollector.mungee(twitterStatus));
+	            	System.out.println("Attempting to save...");
+	            	//tCollector.save(cleanedStatus);
+	            	twitterStatus.clear();
+	            	cleanedStatus.clear();
+	            	counter = 0;
+	            }
+	            else{
+	            	twitterStatus.add(status);
+	            	counter++;
+	            }
 	        }
 
 	        public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
