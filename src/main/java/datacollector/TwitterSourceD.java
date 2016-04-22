@@ -32,7 +32,7 @@ public class TwitterSourceD{
 	            	System.out.println("Cleaning data...");
 	            	cleanedStatus.addAll(tCollector.mungee(twitterStatus));
 	            	System.out.println("Attempting to save...");
-	            	//tCollector.save(cleanedStatus);
+	            	tCollector.save(cleanedStatus);
 	            	twitterStatus.clear();
 	            	cleanedStatus.clear();
 	            	counter = 0;
@@ -65,7 +65,7 @@ public class TwitterSourceD{
 		};
 		
 		FilterQuery q = new FilterQuery();
-		String candidates[] = {"Donald Trump", "Hillary Clinton"};
+		String candidates[] = {"Donald Trump", "Hillary Clinton", "Bernie Sanders", "John Kasich"};
 		
 		q.track(candidates);
 		q.language("en");
