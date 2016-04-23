@@ -1,11 +1,16 @@
 package datacollector;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -25,13 +30,27 @@ import edu.csula.datascience.acquisition.Source;
 public class YoutubeSource implements Source<CommentThread>{
 
 	private YouTube youtube;
-	private String apiKey = "AIzaSyCerMe9K8HTxXV_-LO52Vbe7miAWyC1-08";
+	private String apiKey;
 	private DateTime videoDate = new DateTime(new Date());
 	private String query;
 	private String videoTitle;
 	private String videoCreatedDate;
 	
 	public YoutubeSource(String query){
+		Map<String, String> keyMap = new HashMap<String,String>();
+		Properties properties = new Properties();
+		try {
+			properties.load(new FileInputStream("key.properties"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		for (String key : properties.stringPropertyNames()) {
+			   keyMap.put(key, properties.get(key).toString());
+			}
+		apiKey = keyMap.get("youtubeAPIKey");
+		
 		 youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(), new HttpRequestInitializer() {
              public void initialize(HttpRequest request) throws IOException {
              }

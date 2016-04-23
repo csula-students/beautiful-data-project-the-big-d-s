@@ -1,7 +1,13 @@
 package datacollector;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import twitter4j.FilterQuery;
 import twitter4j.StallWarning;
@@ -16,14 +22,28 @@ public class TwitterSourceD{
 	private static List<Status> twitterStatus = new ArrayList<Status>();
 	private static List<Status> cleanedStatus = new ArrayList<Status>();
 	private static int counter = 0;
+	private static Map<String, String> keyMap = new HashMap<String,String>();
 	public static void main(String[] args){
+		Properties properties = new Properties();
+		try {
+			properties.load(new FileInputStream("key.properties"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		for (String key : properties.stringPropertyNames()) {
+			   keyMap.put(key, properties.get(key).toString());
+			}
+		
+		
 		TwitterCollectorD tCollector = new TwitterCollectorD();
 		ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
-            .setOAuthConsumerKey("4Bj0K9WBHJVoPu9D2fi8ok10K")
-            .setOAuthConsumerSecret("VnJzURwxZGTdF8HcOBYfysN7Ce6Y3RhxH4Of4WWjKBcxa8KMDM")
-            .setOAuthAccessToken("4342390583-WYBxZ2dvy3UihyxTC6mPOBkDZScRJcr1arC33Ib")
-            .setOAuthAccessTokenSecret("ZmH6AJn1uk8oLOtDQZ2rdCNOy6ib87AnjNPPJwBtXZi5W");
+            .setOAuthConsumerKey(keyMap.get("twitterCKey"))
+            .setOAuthConsumerSecret(keyMap.get("twitterCKeySecret"))
+            .setOAuthAccessToken(keyMap.get("twitterAToken"))
+            .setOAuthAccessTokenSecret(keyMap.get("twitterATokenSecret"));
 		TwitterStream ts = new TwitterStreamFactory(cb.build()).getInstance();
 		StatusListener listener = new StatusListener(){
 			public void onStatus(Status status) {
