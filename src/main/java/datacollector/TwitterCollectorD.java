@@ -21,8 +21,8 @@ public class TwitterCollectorD implements Collector<Status, Status>{
 
 	public TwitterCollectorD() {
 		mc = new MongoClient();
-		db = mc.getDatabase("twittertest");
-		collection = db.getCollection("tweets");
+		db = mc.getDatabase("twitter");
+		collection = db.getCollection("tweets21");
 	}
 	@Override
 	public Collection<Status> mungee(Collection<Status> inList) {

@@ -27,7 +27,7 @@ public class TwitterSourceD{
 		TwitterStream ts = new TwitterStreamFactory(cb.build()).getInstance();
 		StatusListener listener = new StatusListener(){
 			public void onStatus(Status status) {
-	            System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
+	            //System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
 	            if (counter == 100){
 	            	System.out.println("Cleaning data...");
 	            	cleanedStatus.addAll(tCollector.mungee(twitterStatus));

@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.bson.Document;
 
-import twitter4j.Status;
 
 import com.google.api.services.youtube.model.CommentSnippet;
 import com.google.api.services.youtube.model.CommentThread;
@@ -27,8 +26,8 @@ public class YoutubeCollector implements Collector<CommentSnippet, CommentThread
 	
 	public YoutubeCollector(){
 		mc = new MongoClient();
-		db = mc.getDatabase("youtubetest2");
-		collection = db.getCollection("ycomments");
+		db = mc.getDatabase("youtube");
+		collection = db.getCollection("comments21");
 	}
 	
 	@Override
