@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pandas as pd
 from pymongo import MongoClient
 from elasticsearch import Elasticsearch
@@ -79,12 +77,8 @@ def replace_pronouns(in_list):
     
     return in_list
 
-
 def distance_calculator(word_list, modified_dict, negation_list, sentiment_dictionary):
     return word_list
-  
-
-
 
 def score(tweetl, hl, senti_dict, hashtags_dict):
     candidates = ['dt', 'bs', 'hc', 'jk']
@@ -153,32 +147,34 @@ def find_positions(tweetl, candidates,senti_dict):
             negation_p.append(index)
         if word in senti_dict:
             senti_p.append(index)
-            
-            
+                      
     result.append(candidate_p)
     result.append(negation_p)
     result.append(senti_p)
     return result
-    
+
 c = MongoClient()
 db = c.twitter
-input_data = db.tweets23
+input_data = db.tweets
 
-data = pd.DataFrame(list(input_data.find()))
+df = pd.DataFrame(list(input_data.find()))
 c.close()
 
-data.index = data['date']
-data = data.sort_values(by = 'date', ascending = True)
+df['hashtags'] = ''
+df['wordlist'] = ''
+df['hc'] = np.nan
+df['bs'] = np.nan
+df['dt'] = np.nan
+df['jk'] = np.nan
+df['tweetsperday'] = 0
+df['dateInt'] = (df.date.dt.year * 1000) + df.date.dt.dayofyear
 
-data['hashtags'] = str(np.nan)
-data['wordlist'] = str(np.nan)
-data['hc'] = np.nan
-data['bs'] = np.nan
-data['dt'] = np.nan
-data['jk'] = np.nan
+cols = ['date', 'user','tweetsperday', 'text', 'wordlist', 'hashtags', 'hc', 'dt', 'bs', 'jk', 'dateInt' ]
+df = df[cols]
 
-cols = ['date', 'user', 'text', 'wordlist', 'hashtags', 'hc', 'dt', 'bs', 'jk']
-data = data[cols]
+df = df.sort_values(by = 'date', ascending = False)
+df = df.reset_index(drop = True)
+
 
 adjective_dictionary ={}
 hashtags_dict = import_from_csv("hashtagdic.csv")
@@ -189,45 +185,76 @@ for key, val in csv.reader(f1):
     adjective_dictionary[key] = float(val)
 
 f1.close()
-    
-    
+      
 negation_list = ["not", "no", "dont"]   
 candidate_dictionary = {"donald": "dt", "trump": "dt", "bernie": "bs", "sanders": "bs", "hillary": "hc", "clinton" : "hc",
                         "john" : "jk", "kasich" : "jk"}
-                        
-count = 0
 
-for i in range(len(data)):   
-    sentence = data.iloc[i]['text'].encode("utf-8")
-    
-    text =  main(sentence, adjective_dictionary, negation_list, candidate_dictionary)
-    hashtag = check_hashtags(sentence, hashtags_dict)
-    scoreDict = score(text, hashtag, adjective_dictionary, hashtags_dict)
+for i in range(len(df)):
         
-    count += 1
-    if count % 100000 == 0:
-        print count
-    
-    if scoreDict['hc'] is 0 and scoreDict['dt'] is 0 and scoreDict['bs'] is 0 and scoreDict['jk'] is 0:
-        continue
-    else:
-
-        data.set_value(data.iloc[i]['date'], 'hc', scoreDict['hc'])
-        data.set_value(data.iloc[i]['date'], 'dt', scoreDict['dt'])
-        data.set_value(data.iloc[i]['date'], 'bs', scoreDict['bs'])
-        data.set_value(data.iloc[i]['date'], 'jk', scoreDict['jk'])
+        if i % 1000000 == 0:
+            print str(i) + " sentiments analyzed"
         
-data = data.dropna()
+        sentence = df.at[i, 'text'].encode("utf-8")
 
-data['wordlist'] = data['wordlist'].astype(str)
-data['hashtags'] = data['hashtags'].astype(str)
+        text =  main(sentence, adjective_dictionary, negation_list, candidate_dictionary)
+        hashtag = check_hashtags(sentence, hashtags_dict)
+        scoreDict = score(text, hashtag, adjective_dictionary, hashtags_dict)    
+
+        if scoreDict['hc'] is 0 and scoreDict['dt'] is 0 and scoreDict['bs'] is 0 and scoreDict['jk'] is 0:
+            continue
+        else:
+                df.set_value(i, 'wordlist', str(text))
+                df.set_value(i, 'hashtags', str(hashtag))
+                df.set_value(i, 'dt', scoreDict['dt'])
+                df.set_value(i, 'hc', scoreDict['hc'])
+                df.set_value(i, 'bs', scoreDict['bs'])
+                df.set_value(i, 'jk', scoreDict['jk'])
+# 85 sec per 1,000,000 tweets
+
+df = df.dropna()
+df = df.reset_index(drop = True)
+
+spliterArray = df.dateInt.unique()
+spliterArray
+
+for date in spliterArray:
+    
+    dfsliced = df.loc[df.dateInt == date]
+
+    userdict = {}
+
+    for index, row in dfsliced.iterrows():
+
+        user = row['user']
+    
+        if user not in userdict:
+            userdict[user] = index, 1
+        else:
+            x, y = userdict[user]
+            userdict[user] = x, (y + 1)
+            df.set_value(index, 'dt', np.nan) 
+
+    for user in userdict:
+
+        df.set_value(userdict[user][0], 'tweetsperday', userdict[user][1])
+        
+    print str(date) + ' completed'
+
+df = df.dropna()
+df = df.reset_index(drop = True)
+
+cols = ['date', 'user', 'tweetsperday', 'text', 'wordlist', 'hashtags', 'hc', 'dt', 'bs', 'jk']
+df = df[cols]
+
+df.tweetsperday = df.tweetsperday.astype(int)
 
 es = Elasticsearch()
 
 index_name = "tweets"
 doc_type = "tweet"
 
-max = len(data)
+max = len(df)
 
 interval = 100000
 count = 0
@@ -235,9 +262,9 @@ notDone = True
 
 if es.indices.exists(index_name):
     
-    print "indices " + index_name + " exists"
+    print "index " + index_name + " exists"
 else:
-    print "indices " + index_name + " did not exist, mapping required"
+    print "index " + index_name + " did not exist, mapping required"
 
 while notDone:
 
@@ -249,7 +276,7 @@ while notDone:
             tweet = {
                 "_index": index_name,
                 "_type": doc_type,
-                "_source": data.iloc[i].to_dict()
+                "_source": df.iloc[i].to_dict()
             }
             bulk_data.append(tweet)
         else:
